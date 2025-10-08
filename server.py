@@ -82,10 +82,10 @@ def main():
         try:
             # Use non-blocking put to add to the queue.
             connection_queue.put_nowait(client_socket)
-            print(f"[{current_time}] Connection added to queue.") #
+            print(f"[{current_time}] Connection added to queue.") 
         except queue.Full:
             # If the queue is full, the server is saturated.
-            print(f"[{current_time}] Warning: Thread pool saturated, queuing connection") #
+            print(f"[{current_time}] Warning: Thread pool saturated, queuing connection") 
             print(f"[{current_time}] Rejecting connection from {client_address[0]}:{client_address[1]}")
             # Send a 503 Service Unavailable response.
             send_error(client_socket, 503, "Service Unavailable", keep_alive=False, extra_headers={"Retry-After": "10"})
@@ -166,11 +166,11 @@ def handle_connection(client_socket, thread_id):
 def serve_get_request(client_socket, path, thread_id, keep_alive):
     """Handles GET requests by serving local files."""
     if path == '/':
-        path = '/index.html' #
+        path = '/index.html' 
 
     # Security: Prevent path traversal attacks.
     if '..' in path:
-        send_error(client_socket, 403, "Forbidden", keep_alive=False) #
+        send_error(client_socket, 403, "Forbidden", keep_alive=False) 
         return
 
     filepath = f"resources{path}"
@@ -178,36 +178,36 @@ def serve_get_request(client_socket, path, thread_id, keep_alive):
 
     try:
         # Open and read the requested file in binary mode.
-        with open(filepath, 'rb') as f: #
+        with open(filepath, 'rb') as f: 
             content = f.read()
 
         # Determine the correct Content-Type.
         if filepath.endswith(".html"):
-            content_type = "text/html; charset=utf-8" #
+            content_type = "text/html; charset=utf-8" 
         elif filepath.endswith((".txt", ".png", ".jpg", ".jpeg")):
-            content_type = "application/octet-stream" #
+            content_type = "application/octet-stream" 
         else:
-            send_error(client_socket, 415, "Unsupported Media Type", keep_alive=False) #
+            send_error(client_socket, 415, "Unsupported Media Type", keep_alive=False) 
             return
 
         # Construct the HTTP response headers.
         current_date = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
-        response_headers = f"HTTP/1.1 200 OK\r\n" #
-        response_headers += f"Content-Type: {content_type}\r\n" #
-        response_headers += f"Content-Length: {len(content)}\r\n" #
-        response_headers += f"Date: {current_date}\r\n" #
-        response_headers += "Server: My Python HTTP Server\r\n" #
+        response_headers = f"HTTP/1.1 200 OK\r\n" 
+        response_headers += f"Content-Type: {content_type}\r\n" 
+        response_headers += f"Content-Length: {len(content)}\r\n" 
+        response_headers += f"Date: {current_date}\r\n" 
+        response_headers += "Server: My Python HTTP Server\r\n" 
 
         # Add Content-Disposition for binary downloads.
         if content_type == "application/octet-stream":
-            response_headers += f'Content-Disposition: attachment; filename="{filename}"\r\n' #
+            response_headers += f'Content-Disposition: attachment; filename="{filename}"\r\n' 
 
         # Add conditional Connection and Keep-Alive headers.
         if keep_alive:
-            response_headers += "Connection: keep-alive\r\n" #
-            response_headers += "Keep-Alive: timeout=30, max=100\r\n\r\n" #
+            response_headers += "Connection: keep-alive\r\n" 
+            response_headers += "Keep-Alive: timeout=30, max=100\r\n\r\n" 
         else:
-            response_headers += "Connection: close\r\n\r\n" #
+            response_headers += "Connection: close\r\n\r\n" 
 
         # Send the complete response to the client.
         client_socket.sendall(response_headers.encode('utf-8') + content)
@@ -219,51 +219,51 @@ def serve_get_request(client_socket, path, thread_id, keep_alive):
 def serve_post_request(client_socket, headers, body_part, thread_id, keep_alive):
     """Handles POST requests by saving uploaded JSON data to a file."""
     # Enforce that the uploaded content must be JSON.
-    if not headers.get('content-type', '').startswith('application/json'): #
-        send_error(client_socket, 415, "Unsupported Media Type", keep_alive=False) #
+    if not headers.get('content-type', '').startswith('application/json'): 
+        send_error(client_socket, 415, "Unsupported Media Type", keep_alive=False) 
         return
 
     try:
         # Try to parse the JSON data from the request body.
-        json_data = json.loads(body_part) #
+        json_data = json.loads(body_part) 
     except json.JSONDecodeError:
         # If JSON is malformed, send a 400 error.
-        send_error(client_socket, 400, "Bad Request", keep_alive=False) #
+        send_error(client_socket, 400, "Bad Request", keep_alive=False) 
         return
 
     # Generate a unique filename for the uploaded data.
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     random_id = ''.join(random.choices(string.ascii_lowercase + string.digits, k=4))
-    filename = f"upload_{timestamp}_{random_id}.json" #
+    filename = f"upload_{timestamp}_{random_id}.json" 
     filepath = f"resources/uploads/{filename}"
 
     try:
         # Write the received JSON data to the new file.
-        with open(filepath, 'w') as f: #
-            json.dump(json_data, f, indent=4) #
+        with open(filepath, 'w') as f: 
+            json.dump(json_data, f, indent=4) 
 
         # Prepare a successful 201 Created response body.
         response_body_dict = {
             "status": "success", #
-            "message": "File created successfully", #
-            "filepath": f"/uploads/{filename}" #
+            "message": "File created successfully", 
+            "filepath": f"/uploads/{filename}" 
         }
         response_body = json.dumps(response_body_dict)
 
         # Construct the 201 Created response headers.
         current_date = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
-        response_headers = f"HTTP/1.1 201 Created\r\n" #
-        response_headers += "Content-Type: application/json\r\n" #
-        response_headers += f"Content-Length: {len(response_body)}\r\n" #
-        response_headers += f"Date: {current_date}\r\n" #
-        response_headers += "Server: My Python HTTP Server\r\n" #
+        response_headers = f"HTTP/1.1 201 Created\r\n" 
+        response_headers += "Content-Type: application/json\r\n" 
+        response_headers += f"Content-Length: {len(response_body)}\r\n" 
+        response_headers += f"Date: {current_date}\r\n" 
+        response_headers += "Server: My Python HTTP Server\r\n" 
 
         # Add conditional Connection and Keep-Alive headers.
         if keep_alive:
-            response_headers += "Connection: keep-alive\r\n" #
-            response_headers += "Keep-Alive: timeout=30, max=100\r\n\r\n" #
+            response_headers += "Connection: keep-alive\r\n" 
+            response_headers += "Keep-Alive: timeout=30, max=100\r\n\r\n" 
         else:
-            response_headers += "Connection: close\r\n\r\n" #
+            response_headers += "Connection: close\r\n\r\n" 
 
         # Send the complete response to the client.
         client_socket.sendall(response_headers.encode('utf-8') + response_body.encode('utf-8'))
@@ -271,7 +271,7 @@ def serve_post_request(client_socket, headers, body_part, thread_id, keep_alive)
     except Exception as e:
         # Handle potential file system errors.
         print(f"[Thread-{thread_id}] Error creating file: {e}")
-        send_error(client_socket, 500, "Internal Server Error", keep_alive=False) #
+        send_error(client_socket, 500, "Internal Server Error", keep_alive=False) 
 
 def send_error(client_socket, status_code, status_message, keep_alive, extra_headers=None):
     """A helper function to send formatted HTTP error responses."""
