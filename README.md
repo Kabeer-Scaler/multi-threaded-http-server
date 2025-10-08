@@ -1,4 +1,4 @@
-# Multi-threaded HTTP Server
+# Multi-Threaded HTTP Server
 This project is a multi-threaded HTTP server built from scratch in Python using low-level socket programming. It is designed to handle multiple concurrent clients, serve static and binary files, process POST requests with JSON data, and implement advanced features like a thread pool and persistent connections.
 
 ## Build and Run Instructions
