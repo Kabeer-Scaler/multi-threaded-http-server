@@ -142,4 +142,4 @@ The server includes two critical security features as required:
 - Host Header Validation: The server inspects the Host header on every incoming request. It verifies that the header is present (returning 400 Bad Request if missing) and that its value matches the server's own address (returning 403 Forbidden if there is a mismatch).
 
 ## Known Limitations
-The implementation adheres to all major functional, security, and advanced architecture requirements laid out in the project document. Minor logging features, such as a periodic "Thread pool status" message, are not implemented.
+The implementation adheres to all major functional, security, and advanced architecture requirements. Minor logging features, such as a periodic "Thread pool status" message, are not implemented.
